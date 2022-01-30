@@ -21,6 +21,7 @@ import { findCenter, separateZone } from "../Utils/separateNode";
 import ZoneTable from "../components/ZoneTable";
 import ButtonExportExel from "./ButtonGroupExportExcel";
 import dayjs from "dayjs";
+import { buttonList } from "../Utils/config";
 
 const memoizeCalCulateAttitude = memoize(calCulateAttitude);
 class NodeWithSeparate extends Component {
@@ -165,12 +166,15 @@ class NodeWithSeparate extends Component {
     });
     console.timeEnd("start");
   };
-  handleChangeModel = (e) => {
+
+  handleChangeModel = (label) => (e) => {
     const value = e.target.value;
     this.setState({
       model: value,
+      labelModel: label
     });
   };
+
   handleChangeValue = (e) => {
     const { name, value } = e.target;
     this.setState({
@@ -194,7 +198,7 @@ class NodeWithSeparate extends Component {
       lastPredictNode = false,
       allRangeOfNodes,
       semiVarioGram,
-      model = "exponential",
+      model = "exponentialWithConstant",
       variable,
       zones,
       slope
@@ -219,7 +223,7 @@ class NodeWithSeparate extends Component {
       : false;
 
     const trendlineData = isAllNodeHavePredict
-      ? getTrendlines(allRangeOfNodes, semiVarioGram["exponential"]).filter(([a, b]) => b !== 1)
+      ? getTrendlines(allRangeOfNodes, semiVarioGram["exponentialWithConstant"]).filter(([a, b]) => b !== 1)
       : [];
 
     const data = [["Distance", "Semivariance"], ...trendlineData];
@@ -237,6 +241,7 @@ class NodeWithSeparate extends Component {
       vAxis: { title: 'Semivariance' },
       hAxis: { title: 'Distance' },
     };
+    const isDisabledSubmit = !variable.nugget && !variable.sill && !variable.range
 
     return (
       <div className="container-graph">
@@ -252,42 +257,18 @@ class NodeWithSeparate extends Component {
           <Link style={{ marginRight: "15px" }} to="/nine-separate">3 x 3 zones</Link>
           <Link to="/sixteen-separate">4 x 4 zones</Link>
           <h1>
-            {model.replace(/^\w/, (c) => c.toUpperCase()) || "Exponential"}
+            {this.state.labelModel || "Exponential"}
           </h1>
           <div>
             <h1>Model Selection</h1>
-            <button onClick={this.handleChangeModel} value="exponential">
-              Exponential Model
-            </button>
-            <button onClick={this.handleChangeModel} value="linear">
-              Linear Model
-            </button>
-            <button onClick={this.handleChangeModel} value="spherical">
-              Spherical Model
-            </button>
-            <button onClick={this.handleChangeModel} value="pentaspherical">
-              Pentaspherical Model
-            </button>
-            <button onClick={this.handleChangeModel} value="gaussian">
-              Gussian Model
-            </button>
-            <button onClick={this.handleChangeModel} value="trendline">
-              Trendline Model
-            </button>
-            <button
-              onClick={this.handleChangeModel}
-              value="exponentialWithKIteration"
-            >
-              Exponential with K iteration Model
-            </button>
-            {!!variable.nugget && !!variable.sill && !!variable.range && (
-              <button
-                onClick={this.handleChangeModel}
-                value="exponentialWithConstant"
-              >
-                Exponential with Constant
-              </button>
-            )}
+            {buttonList.map(({ label, model }) => {
+              return (
+                <button onClick={this.handleChangeModel(label)} value={model}>
+                  {label}
+                </button>
+              )
+            })
+            }
           </div>
           <h1>Node list</h1>
           <input
@@ -360,7 +341,7 @@ class NodeWithSeparate extends Component {
 
           <input onChange={this.onChangeFile} type="file"></input>
           <button onClick={this.addNode}>ADD NODE</button>
-          <button onClick={this.onSubmit}>Submit</button>
+          <button onClick={this.onSubmit} disabled={isDisabledSubmit}>Submit</button>
           {error && (
             <ButtonExportExel
               onSlopeChange={this.onSlopeChange}
