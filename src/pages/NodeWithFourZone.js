@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import ReactHTMLTableToExcel from "react-html-table-to-excel";
 
 import Plot from "react-plotly.js";
 import memoize from "fast-memoize";
@@ -19,6 +18,10 @@ import ErrorTable from "../components/ErrorTable";
 import NodeResultTable from "../components/NodeResultTable";
 import { Link } from "react-router-dom";
 import { findCenter, separateZone } from "../Utils/separateNode";
+import ZoneTable from "../components/ZoneTable";
+import ButtonExportExel from "./ButtonGroupExportExcel";
+import dayjs from "dayjs";
+import { buttonList } from "../Utils/config";
 
 const memoizeCalCulateAttitude = memoize(calCulateAttitude);
 class NodeWithSeparate extends Component {
@@ -33,6 +36,8 @@ class NodeWithSeparate extends Component {
       sill: "",
       range: "",
     },
+    zones: [],
+    slope: ''
   };
 
   addNode = () => {
@@ -105,9 +110,14 @@ class NodeWithSeparate extends Component {
     const { nodes, loading, variable } = this.state;
     this.setState({
       loading: !loading,
+      start: dayjs()
     });
     const center = findCenter(nodes);
     const zone = separateZone(nodes, center);
+    this.setState({
+      zones: zone
+    })
+
     const key = Object.keys(zone);
     const newNode = [];
     const allRangeOfNodesTemp = [];
@@ -152,15 +162,19 @@ class NodeWithSeparate extends Component {
       semiVarioGram: semiVarioGramTemp,
       nodes: newNode.sort((a, b) => a.id < b.id),
       loading: false,
+      end: dayjs()
     });
     console.timeEnd("start");
   };
-  handleChangeModel = (e) => {
+
+  handleChangeModel = (label) => (e) => {
     const value = e.target.value;
     this.setState({
       model: value,
+      labelModel: label
     });
   };
+
   handleChangeValue = (e) => {
     const { name, value } = e.target;
     this.setState({
@@ -170,6 +184,13 @@ class NodeWithSeparate extends Component {
       },
     });
   };
+
+  onSlopeChange = (value) => {
+    this.setState({
+      ...this.state,
+      slope: value
+    })
+  }
   render() {
     const {
       nodes,
@@ -177,8 +198,10 @@ class NodeWithSeparate extends Component {
       lastPredictNode = false,
       allRangeOfNodes,
       semiVarioGram,
-      model = "exponential",
+      model = "gaussian",
       variable,
+      zones,
+      slope
     } = this.state;
     const transformDataNode = nodes.sort((a, b) => {
       if (a.id > b.id) {
@@ -190,7 +213,7 @@ class NodeWithSeparate extends Component {
       ({ predictAttitude }) => predictAttitude !== undefined
     );
     const scatterGraph = isAllNodeHavePredict
-      ? createScatterGraph(allRangeOfNodes, semiVarioGram, model)
+      ? createScatterGraph(allRangeOfNodes, semiVarioGram, model, this.state.labelModel || "Gussian Model")
       : false;
     const x = getXYZ(transformDataNode, "latitude");
     const y = getXYZ(transformDataNode, "longtitude");
@@ -200,7 +223,7 @@ class NodeWithSeparate extends Component {
       : false;
 
     const trendlineData = isAllNodeHavePredict
-      ? getTrendlines(allRangeOfNodes, semiVarioGram["exponential"]).filter(([a, b]) => b !== 1)
+      ? getTrendlines(allRangeOfNodes, semiVarioGram["gaussian"]).filter(([a, b]) => b !== 1)
       : [];
 
     const data = [["Distance", "Semivariance"], ...trendlineData];
@@ -218,6 +241,8 @@ class NodeWithSeparate extends Component {
       vAxis: { title: 'Semivariance' },
       hAxis: { title: 'Distance' },
     };
+    const isDisabledSubmit = !variable.nugget && !variable.sill && !variable.range
+
     return (
       <div className="container-graph">
         {loading && (
@@ -232,42 +257,18 @@ class NodeWithSeparate extends Component {
           <Link style={{ marginRight: "15px" }} to="/nine-separate">3 x 3 zones</Link>
           <Link to="/sixteen-separate">4 x 4 zones</Link>
           <h1>
-            {model.replace(/^\w/, (c) => c.toUpperCase()) || "Exponential"}
+            {this.state.labelModel || "Gussian Model"}
           </h1>
           <div>
             <h1>Model Selection</h1>
-            <button onClick={this.handleChangeModel} value="exponential">
-              Exponential Model
-            </button>
-            <button onClick={this.handleChangeModel} value="linear">
-              Linear Model
-            </button>
-            <button onClick={this.handleChangeModel} value="spherical">
-              Spherical Model
-            </button>
-            <button onClick={this.handleChangeModel} value="pentaspherical">
-              Pentaspherical Model
-            </button>
-            <button onClick={this.handleChangeModel} value="gaussian">
-              Gussian Model
-            </button>
-            <button onClick={this.handleChangeModel} value="trendline">
-              Trendline Model
-            </button>
-            <button
-              onClick={this.handleChangeModel}
-              value="exponentialWithKIteration"
-            >
-              Exponential with K iteration Model
-            </button>
-            {!!variable.nugget && !!variable.sill && !!variable.range && (
-              <button
-                onClick={this.handleChangeModel}
-                value="exponentialWithConstant"
-              >
-                Exponential with Constant
-              </button>
-            )}
+            {buttonList.map(({ label, model }) => {
+              return (
+                <button onClick={this.handleChangeModel(label)} value={model}>
+                  {label}
+                </button>
+              )
+            })
+            }
           </div>
           <h1>Node list</h1>
           <input
@@ -340,26 +341,11 @@ class NodeWithSeparate extends Component {
 
           <input onChange={this.onChangeFile} type="file"></input>
           <button onClick={this.addNode}>ADD NODE</button>
-          <button onClick={this.onSubmit}>Submit</button>
+          <button onClick={this.onSubmit} disabled={isDisabledSubmit}>Submit</button>
           {error && (
-            <div className="wrapper-export-excel">
-              <ReactHTMLTableToExcel
-                id="table-calculate-node-result-button"
-                className="download-table-xls-button"
-                table="table-calculate-node-result"
-                filename="prediction_calculate_result"
-                sheet="prediction_calculate_result"
-                buttonText="Download as prediction"
-              />
-              <ReactHTMLTableToExcel
-                id="test-table-xls-button"
-                className="download-table-xls-button"
-                table="error-table"
-                filename="errorSheet"
-                sheet="ErrorSheetxls"
-                buttonText="Download as errors report"
-              />
-            </div>
+            <ButtonExportExel
+              onSlopeChange={this.onSlopeChange}
+            />
           )}
         </div>
 
@@ -426,7 +412,7 @@ class NodeWithSeparate extends Component {
                     zerolinecolor: 'white',
                     gridcolor: 'white',
                     nticks: 20,
-                    range: [0, 100],
+
 
                   },
                   yaxis: {
@@ -493,7 +479,7 @@ class NodeWithSeparate extends Component {
                     zerolinecolor: 'white',
                     gridcolor: 'white',
                     nticks: 20,
-                    range: [0, 100],
+
 
                   },
                   yaxis: {
@@ -527,7 +513,19 @@ class NodeWithSeparate extends Component {
               legendToggle
             />
           )}
+
+          <ZoneTable
+            zones={zones}
+            nodes={transformDataNode}
+            isShowConstant={
+              !!variable.nugget && !!variable.sill && !!variable.range
+            }
+            inputSlope={slope}
+            startTime={this.state.start}
+            endTime={this.state.end}
+          />
         </div>
+
       </div>
     );
   }

@@ -16,6 +16,7 @@ import getTrendlines from "../Utils/getTrendlines";
 import ErrorTable from "../components/ErrorTable";
 import NodeResultTable from "../components/NodeResultTable";
 import { Link } from "react-router-dom";
+import { buttonList } from "../Utils/config";
 
 const memoizeCalCulateAttitude = memoize(calCulateAttitude);
 class Form extends Component {
@@ -103,7 +104,6 @@ class Form extends Component {
     this.setState({
       loading: !loading,
     });
-    console.time("start");
     const {
       bestSumList,
       bestSum,
@@ -120,12 +120,12 @@ class Form extends Component {
       semiVarioGram,
       loading: false,
     });
-    console.timeEnd("start");
   };
-  handleChangeModel = (e) => {
+  handleChangeModel = (label) => (e) => {
     const value = e.target.value;
     this.setState({
       model: value,
+      labelModel: label
     });
   };
   handleChangeValue = (e) => {
@@ -145,7 +145,7 @@ class Form extends Component {
       allRangeOfNodes,
       semiVarioGram,
       bestSumList = false,
-      model = "exponential",
+      model = "gaussian",
       variable,
     } = this.state;
     const transformDataNode = lastPredictNode // TODO: lastPredictNode
@@ -153,7 +153,7 @@ class Form extends Component {
       : nodes;
 
     const scatterGraph = lastPredictNode
-      ? createScatterGraph(allRangeOfNodes, semiVarioGram, model)
+      ? createScatterGraph(allRangeOfNodes, semiVarioGram, model, this.state.labelModel || "Gussian Model")
       : false;
     const x = getXYZ(transformDataNode, "latitude");
     const y = getXYZ(transformDataNode, "longtitude");
@@ -164,7 +164,7 @@ class Form extends Component {
       : false;
 
     const trendlineData = lastPredictNode
-      ? getTrendlines(allRangeOfNodes, semiVarioGram["exponential"]).filter(([a, b]) => b !== 1)
+      ? getTrendlines(allRangeOfNodes, semiVarioGram["gaussian"]).filter(([a, b]) => b !== 1)
       : [];
 
 
@@ -185,6 +185,8 @@ class Form extends Component {
       vAxis: { title: 'Semivariance' },
       hAxis: { title: 'Distance' },
     };
+    const isDisabledSubmit = !variable.nugget && !variable.sill && !variable.range
+
     return (
       <div className="container-graph">
         {loading && (
@@ -194,47 +196,26 @@ class Form extends Component {
         )}
 
         <div style={{ margin: "15px" }}>
-          {/* <Link style={{ marginRight: "15px" }} to="/">1 x 1 zone</Link>
+          <Link style={{ marginRight: "15px" }} to="/">1 x 1 zone</Link>
           <Link style={{ marginRight: "15px" }} to="/separate">2 x 2 zones</Link>
           <Link style={{ marginRight: "15px" }} to="/nine-separate">3 x 3 zones</Link>
-          <Link to="/sixteen-separate">4 x 4 zones</Link> */}
+          <Link to="/sixteen-separate">4 x 4 zones</Link>
           <h1>
-            {model.replace(/^\w/, (c) => c.toUpperCase()) || "Exponential"}
+            {this.state.labelModel || "Gussian Model"}
           </h1>
           <div>
             <h1>Model Selection</h1>
-            <button onClick={this.handleChangeModel} value="exponential">
-              Exponential Model
-            </button>
-            <button onClick={this.handleChangeModel} value="linear">
-              Linear Model
-            </button>
-            <button onClick={this.handleChangeModel} value="spherical">
-              Spherical Model
-            </button>
-            <button onClick={this.handleChangeModel} value="pentaspherical">
-              Pentaspherical Model
-            </button>
-            <button onClick={this.handleChangeModel} value="gaussian">
-              Gussian Model
-            </button>
-            <button onClick={this.handleChangeModel} value="trendline">
-              Trendline Model
-            </button>
-            <button
-              onClick={this.handleChangeModel}
-              value="exponentialWithKIteration"
-            >
-              Exponential with K iteration Model
-            </button>
-            {!!variable.nugget && !!variable.sill && !!variable.range && (
-              <button
-                onClick={this.handleChangeModel}
-                value="exponentialWithConstant"
-              >
-                Exponential with Constant
-              </button>
-            )}
+
+            {
+              buttonList.map(({ label, model }) => {
+                return (
+                  <button onClick={this.handleChangeModel(label)} value={model}>
+                    {label}
+                  </button>
+                )
+              })
+            }
+
           </div>
           <h1>Node list</h1>
           <input
@@ -305,7 +286,7 @@ class Form extends Component {
 
           <input onChange={this.onChangeFile} type="file"></input>
           <button onClick={this.addNode}>ADD NODE</button>
-          <button onClick={this.onSubmit}>Submit</button>
+          <button onClick={this.onSubmit} disabled={isDisabledSubmit}>Submit</button>
           {error && (
             <div className="wrapper-export-excel">
               <ReactHTMLTableToExcel
