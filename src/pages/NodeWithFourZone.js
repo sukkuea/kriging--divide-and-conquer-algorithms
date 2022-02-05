@@ -198,7 +198,7 @@ class NodeWithSeparate extends Component {
       lastPredictNode = false,
       allRangeOfNodes,
       semiVarioGram,
-      model = "exponentialWithConstant",
+      model = "gaussian",
       variable,
       zones,
       slope
@@ -213,7 +213,7 @@ class NodeWithSeparate extends Component {
       ({ predictAttitude }) => predictAttitude !== undefined
     );
     const scatterGraph = isAllNodeHavePredict
-      ? createScatterGraph(allRangeOfNodes, semiVarioGram, model)
+      ? createScatterGraph(allRangeOfNodes, semiVarioGram, model, this.state.labelModel || "Gussian Model")
       : false;
     const x = getXYZ(transformDataNode, "latitude");
     const y = getXYZ(transformDataNode, "longtitude");
@@ -223,7 +223,7 @@ class NodeWithSeparate extends Component {
       : false;
 
     const trendlineData = isAllNodeHavePredict
-      ? getTrendlines(allRangeOfNodes, semiVarioGram["exponentialWithConstant"]).filter(([a, b]) => b !== 1)
+      ? getTrendlines(allRangeOfNodes, semiVarioGram["gaussian"]).filter(([a, b]) => b !== 1)
       : [];
 
     const data = [["Distance", "Semivariance"], ...trendlineData];
@@ -257,7 +257,7 @@ class NodeWithSeparate extends Component {
           <Link style={{ marginRight: "15px" }} to="/nine-separate">3 x 3 zones</Link>
           <Link to="/sixteen-separate">4 x 4 zones</Link>
           <h1>
-            {this.state.labelModel || "Exponential"}
+            {this.state.labelModel || "Gussian Model"}
           </h1>
           <div>
             <h1>Model Selection</h1>
