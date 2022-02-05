@@ -145,7 +145,7 @@ class Form extends Component {
       allRangeOfNodes,
       semiVarioGram,
       bestSumList = false,
-      model = "exponentialWithConstant",
+      model = "gaussian",
       variable,
     } = this.state;
     const transformDataNode = lastPredictNode // TODO: lastPredictNode
@@ -153,7 +153,7 @@ class Form extends Component {
       : nodes;
 
     const scatterGraph = lastPredictNode
-      ? createScatterGraph(allRangeOfNodes, semiVarioGram, model)
+      ? createScatterGraph(allRangeOfNodes, semiVarioGram, model, this.state.labelModel || "Gussian Model")
       : false;
     const x = getXYZ(transformDataNode, "latitude");
     const y = getXYZ(transformDataNode, "longtitude");
@@ -164,7 +164,7 @@ class Form extends Component {
       : false;
 
     const trendlineData = lastPredictNode
-      ? getTrendlines(allRangeOfNodes, semiVarioGram["exponentialWithConstant"]).filter(([a, b]) => b !== 1)
+      ? getTrendlines(allRangeOfNodes, semiVarioGram["gaussian"]).filter(([a, b]) => b !== 1)
       : [];
 
 
@@ -201,7 +201,7 @@ class Form extends Component {
           <Link style={{ marginRight: "15px" }} to="/nine-separate">3 x 3 zones</Link>
           <Link to="/sixteen-separate">4 x 4 zones</Link>
           <h1>
-            {this.state.labelModel || "Exponential"}
+            {this.state.labelModel || "Gussian Model"}
           </h1>
           <div>
             <h1>Model Selection</h1>

@@ -1,4 +1,4 @@
-export default (allRangeOfNodes, semiVarioGram, model = "exponential") => {
+export default (allRangeOfNodes, semiVarioGram, model = "exponential", name = 'Gussian Model') => {
   let scatterGraph = [];
   for (let i = 0; i < allRangeOfNodes.length - 1; i++) {
     const length = allRangeOfNodes[i].length;
@@ -10,7 +10,7 @@ export default (allRangeOfNodes, semiVarioGram, model = "exponential") => {
       x: range,
       y: semi,
       mode: "markers",
-      name: model,
+      name: name,
       type: "scatter",
     });
   }
